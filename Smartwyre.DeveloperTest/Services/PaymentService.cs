@@ -1,37 +1,47 @@
-﻿using Smartwyre.DeveloperTest.Data;
-using Smartwyre.DeveloperTest.Types;
+﻿using Smartwyre.DeveloperTest.Types;
+using System;
 using System.Configuration;
+using System.Threading.Tasks;
 
 namespace Smartwyre.DeveloperTest.Services
 {
     public class PaymentService : IPaymentService
     {
-        public MakePaymentResult MakePayment(MakePaymentRequest request)
+        private readonly IAccountDataStore _accountDataStore;
+
+        public PaymentService(IAccountDataStore accountDataStore)
         {
-            var accountDataStoreGetData = new AccountDataStore();
-            Account account = accountDataStoreGetData.GetAccount(request.DebtorAccountNumber);
-            
+            _accountDataStore = accountDataStore;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        public async Task<MakePaymentResult> MakePaymentAsync(MakePaymentRequest request)
+        {
+           
             var result = new MakePaymentResult();
+            Account account =  await _accountDataStore.GetAccountAsync(request.DebtorAccountNumber);
+            
+            if(account == null)
+            {
+                result.Success = false;
+                return result;
+            }
 
             switch (request.PaymentScheme)
             {
                 case PaymentScheme.BankToBankTransfer:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.BankToBankTransfer))
+                    if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.BankToBankTransfer))
                     {
                         result.Success = false;
                     }
                     break;
 
                 case PaymentScheme.ExpeditedPayments:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.ExpeditedPayments))
+                    if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.ExpeditedPayments))
                     {
                         result.Success = false;
                     }
@@ -42,11 +52,7 @@ namespace Smartwyre.DeveloperTest.Services
                     break;
 
                 case PaymentScheme.AutomatedPaymentSystem:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.AutomatedPaymentSystem))
+                    if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.AutomatedPaymentSystem))
                     {
                         result.Success = false;
                     }
@@ -60,12 +66,12 @@ namespace Smartwyre.DeveloperTest.Services
             if (result.Success)
             {
                 account.Balance -= request.Amount;
-
-                var accountDataStoreUpdateData = new AccountDataStore();
-                accountDataStoreUpdateData.UpdateAccount(account);
+                await _accountDataStore.UpdateAccountAsync(account);
             }
 
             return result;
         }
+
+     
     }
 }

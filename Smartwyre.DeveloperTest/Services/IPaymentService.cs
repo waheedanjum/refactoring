@@ -1,9 +1,10 @@
 ﻿using Smartwyre.DeveloperTest.Types;
+using System.Threading.Tasks;
 
 namespace Smartwyre.DeveloperTest.Services
 {
     public interface IPaymentService
     {
-        MakePaymentResult MakePayment(MakePaymentRequest request);
+        Task<MakePaymentResult> MakePaymentAsync(MakePaymentRequest request);
     }
 }
